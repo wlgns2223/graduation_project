@@ -8,34 +8,8 @@
 
 #include "LaneDetection.hpp"
 
-void draw_houghLine(Mat src, Mat& dst, vector<Vec2f> left_lines, vector<Vec2f> right_lines)
-{
-    cvtColor(src, dst, COLOR_GRAY2BGR);
-    float rho[2] = { left_lines[0][0], right_lines[0][0] };
-    float theta[2] = { left_lines[0][1], right_lines[0][1] };
-    
-    double a[2] = { cos(theta[LEFT_LINE]), cos(theta[RIGHT_LINE])};
-    double b[2] = { sin(theta[LEFT_LINE]), sin(theta[RIGHT_LINE])};
-    
-    Point2d pt[2] = {
-        Point2d(a[LEFT_LINE] * rho[LEFT_LINE], b[LEFT_LINE] * rho[LEFT_LINE]),
-        Point2d(a[RIGHT_LINE] * rho[RIGHT_LINE], b[RIGHT_LINE] * rho[RIGHT_LINE])
-    };
-    
-    Point2d delta[2] = {
-        Point2d( 1000 * (-b[LEFT_LINE]), 1000 * a[LEFT_LINE]),
-        Point2d( 1000 * (-b[RIGHT_LINE]), 1000 * a[RIGHT_LINE])
-    };
-    
-    
-    cout<<left_lines[0]<<"  "<<left_lines[1]<<endl;
-    
-    
-//    line(dst, pt[LEFT_LINE] + delta[LEFT_LINE], pt[LEFT_LINE] - delta[LEFT_LINE], Scalar(0,255,0),1 , LINE_AA);
-//    line(dst, pt[RIGHT_LINE] + delta[RIGHT_LINE], pt[RIGHT_LINE] - delta[RIGHT_LINE], Scalar(0,255,0),1 , LINE_AA);
-    
-    
-}
+bool right_flag = false;
+bool left_flag = false;
 
 void onMouse(int event, int x, int y, int flags, void* param)
 {
@@ -66,13 +40,142 @@ Mat region_of_interest(Mat img, const Point* pt, int nPoints, const Scalar& colo
     return output;
 }
 
-void two_HoughLines(InputArray image, OutputArray left_lines, OutputArray right_lines,
-                    double rho, double theta,
-                    int threshold)
+vector< vector<Vec4i> > lineSeperator(vector<Vec4i> lines, Mat img_edges )
 {
+    vector< vector<Vec4i >> output(2);
+    size_t j = 0;
+    Point start;
+    Point dest;
+    double slope_thresh  = 0.3;
+    vector<double> slopes;
+    vector<Vec4i> selected_lines;
+    vector<Vec4i> left_lines, right_lines;
+    
+    for(auto pt : lines) {
+        
+        start = Point(pt[0], pt[1]);
+        dest = Point(pt[2], pt[3] );
+        
+        double slope = (static_cast<double>(dest.y) - static_cast<double>(start.y)) /
+                        (static_cast<double>(dest.x) - static_cast<double>(start.x) + 0.00001);
+        
+        if(abs(slope) > slope_thresh ) {
+            slopes.push_back(slope);
+            selected_lines.push_back(pt);
+        }
+    }
+    
+    double img_center = static_cast<double>(img_edges.cols / 2);
+    while( j < selected_lines.size()) {
+        
+        start  = Point(selected_lines[j][0], selected_lines[j][1]);
+        start = Point(selected_lines[j][2], selected_lines[j][3]);
+        
+        if(slopes[j] > 0 && dest.x > img_center && start.x > img_center) {
+            right_lines.push_back(selected_lines[j]);
+            right_flag = true;
+        } else {
+            left_lines.push_back(selected_lines[j]);
+            left_flag = true;
+        }
+        ++j;
+    }
+    
+    
+    
+    output[0] = right_lines;
+    output[1] = left_lines;
+    
+    return output;
+}
 
+
+std::vector<cv::Point> regression(std::vector<std::vector<cv::Vec4i> > left_right_lines, cv::Mat inputImage) {
+    vector<cv::Point> output(4);
+    Point ini;
+    Point fini;
+    Point ini2;
+    Point fini2;
+    Vec4d right_line;
+    Vec4d left_line;
+    vector<cv::Point> right_pts;
+    vector<cv::Point> left_pts;
+    double right_m=0, left_m=0;
+    Point right_b, left_b;
     
-    HoughLines(image, left_lines, rho, theta, 10,0,0,0, CV_PI /2 );
-    HoughLines(image, right_lines, rho, theta, 10,0,0,CV_PI /2 , CV_PI);
     
+    // If right lines are being detected, fit a line using all the init and final points of the lines
+    if (right_flag == true) {
+        for (auto i : left_right_lines[0]) {
+            ini = cv::Point(i[0], i[1]);
+            fini = cv::Point(i[2], i[3]);
+            right_pts.push_back(ini);
+            right_pts.push_back(fini);
+        }
+        if (right_pts.size() > 0) {
+            // The right line is formed here
+            cv::fitLine(right_pts, right_line, DIST_L2, 0, 0.01, 0.01);
+            right_m = right_line[1] / right_line[0];
+            right_b = cv::Point(right_line[2], right_line[3]);
+        }
+    }
+    // If left lines are being detected, fit a line using all the init and final points of the lines
+    if (left_flag == true) {
+        for (auto j : left_right_lines[1]) {
+            ini2 = cv::Point(j[0], j[1]);
+            fini2 = cv::Point(j[2], j[3]);
+            left_pts.push_back(ini2);
+            left_pts.push_back(fini2);
+        }
+        if (left_pts.size() > 0) {
+            // The left line is formed here
+            cv::fitLine(left_pts, left_line, DIST_L2, 0, 0.01, 0.01);
+            left_m = left_line[1] / left_line[0];
+            left_b = cv::Point(left_line[2], left_line[3]);
+        }
+    }
+    // One the slope and offset points have been obtained, apply the line equation to obtain the line points
+    int ini_y = inputImage.rows;
+    int fin_y = 250;
+    
+    double right_ini_x = ((ini_y - right_b.y) / right_m) + right_b.x;
+    double right_fin_x = ((fin_y - right_b.y) / right_m) + right_b.x;
+    double left_ini_x = ((ini_y - left_b.y) / left_m) + left_b.x;
+    double left_fin_x = ((fin_y - left_b.y) / left_m) + left_b.x;
+    output[0] = cv::Point(right_ini_x, ini_y);
+    output[1] = cv::Point(right_fin_x, fin_y);
+    output[2] = cv::Point(left_ini_x, ini_y);
+    output[3] = cv::Point(left_fin_x, fin_y);
+    
+    
+    
+    return output;
+}
+
+
+void plotLane(Mat inputImage, vector<Point> lane)
+{
+    vector<Point> poly_points;
+    Mat output;
+    inputImage.copyTo(output);
+    
+    poly_points.push_back(lane[2]);
+    poly_points.push_back(lane[0]);
+    poly_points.push_back(lane[1]);
+    poly_points.push_back(lane[3]);
+    
+    cout<<lane<<endl;
+    cout<<inputImage.rows<<","<<inputImage.cols<<endl;
+    
+    
+
+    fillConvexPoly(output, poly_points, Scalar(0,255,0));
+    addWeighted(output, 0.3, inputImage, 1.0, -0.3, inputImage);
+    
+    line(inputImage, lane[0], lane[1], Scalar(0,0,255),2, LINE_AA);
+    line(inputImage, lane[2], lane[3], Scalar(0,0,255),2, LINE_AA);
+    
+    imshow("output", output);
+    imshow("image", inputImage);
+    waitKey();
 }
