@@ -10,6 +10,7 @@
 
 bool right_flag = false;
 bool left_flag = false;
+double img_center;
 
 void onMouse(int event, int x, int y, int flags, void* param)
 {
@@ -23,7 +24,11 @@ void onMouse(int event, int x, int y, int flags, void* param)
 
 void draw_trapezoid(Mat& dst, Point* pt, const Scalar& color )
 {
-    cvtColor(dst, dst, COLOR_GRAY2BGR);
+    if(dst.channels() == 1) {
+        cvtColor(dst, dst, COLOR_GRAY2BGR);
+    }
+    
+    
     line(dst, pt[0], pt[1], color);
     line(dst, pt[1], pt[2], color);
     line(dst, pt[2], pt[3], color);
@@ -40,48 +45,98 @@ Mat region_of_interest(Mat img, const Point* pt, int nPoints, const Scalar& colo
     return output;
 }
 
-vector< vector<Vec4i> > lineSeperator(vector<Vec4i> lines, Mat img_edges )
-{
-    vector< vector<Vec4i >> output(2);
+//vector< vector<Vec4i> > lineSeperator(vector<Vec4i> lines, Mat img_edges )
+//{
+//    vector< vector<Vec4i >> output(2);
+//    size_t j = 0;
+//    Point start;
+//    Point dest;
+//    double slope_thresh  = 0.3;
+//    vector<double> slopes;
+//    vector<Vec4i> selected_lines;
+//    vector<Vec4i> left_lines, right_lines;
+//
+//    for(auto pt : lines) {
+//
+//        start = Point(pt[0], pt[1]);
+//        dest = Point(pt[2], pt[3] );
+//
+//        double slope = (static_cast<double>(dest.y) - static_cast<double>(start.y)) /
+//                        (static_cast<double>(dest.x) - static_cast<double>(start.x) + 0.00001);
+//
+//        if(abs(slope) > slope_thresh ) {
+//            slopes.push_back(slope);
+//            selected_lines.push_back(pt);
+//        }
+//    }
+//
+//    double img_center = static_cast<double>(img_edges.cols / 2);
+//    while( j < selected_lines.size()) {
+//
+//        start  = Point(selected_lines[j][0], selected_lines[j][1]);
+//        start = Point(selected_lines[j][2], selected_lines[j][3]);
+//
+//        if(slopes[j] > 0 && dest.x > img_center && start.x > img_center) {
+//            right_lines.push_back(selected_lines[j]);
+//            right_flag = true;
+//
+//        } else {
+//            left_lines.push_back(selected_lines[j]);
+//            left_flag = true;
+//        }
+//        ++j;
+//    }
+//
+//
+//
+//    output[0] = right_lines;
+//    output[1] = left_lines;
+//
+//    return output;
+//}
+
+    vector<std::vector<cv::Vec4i> > lineSeperator(std::vector<cv::Vec4i> lines, cv::Mat img_edges) {
+    vector<std::vector<cv::Vec4i> > output(2);
     size_t j = 0;
-    Point start;
-    Point dest;
-    double slope_thresh  = 0.3;
+    Point ini;
+    Point fini;
+    double slope_thresh = 0.3;
     vector<double> slopes;
-    vector<Vec4i> selected_lines;
-    vector<Vec4i> left_lines, right_lines;
+    vector<cv::Vec4i> selected_lines;
+    vector<cv::Vec4i> right_lines, left_lines;
     
-    for(auto pt : lines) {
+    // Calculate the slope of all the detected lines
+    for (auto i : lines) {
+        ini = Point(i[0], i[1]);
+        fini = Point(i[2], i[3]);
         
-        start = Point(pt[0], pt[1]);
-        dest = Point(pt[2], pt[3] );
+        // Basic algebra: slope = (y1 - y0)/(x1 - x0)
+        double slope = (static_cast<double>(fini.y) - static_cast<double>(ini.y))/(static_cast<double>(fini.x) - static_cast<double>(ini.x) + 0.00001);
         
-        double slope = (static_cast<double>(dest.y) - static_cast<double>(start.y)) /
-                        (static_cast<double>(dest.x) - static_cast<double>(start.x) + 0.00001);
-        
-        if(abs(slope) > slope_thresh ) {
+        // If the slope is too horizontal, discard the line
+        // If not, save them  and their respective slope
+        if (std::abs(slope) > slope_thresh) {
             slopes.push_back(slope);
-            selected_lines.push_back(pt);
+            selected_lines.push_back(i);
         }
     }
     
-    double img_center = static_cast<double>(img_edges.cols / 2);
-    while( j < selected_lines.size()) {
+    // Split the lines into right and left lines
+    img_center = static_cast<double>((img_edges.cols / 2));
+    while (j < selected_lines.size()) {
+        ini = Point(selected_lines[j][0], selected_lines[j][1]);
+        fini = Point(selected_lines[j][2], selected_lines[j][3]);
         
-        start  = Point(selected_lines[j][0], selected_lines[j][1]);
-        start = Point(selected_lines[j][2], selected_lines[j][3]);
-        
-        if(slopes[j] > 0 && dest.x > img_center && start.x > img_center) {
+        // Condition to classify line as left side or right side
+        if (slopes[j] > 0 && fini.x > img_center && ini.x > img_center) {
             right_lines.push_back(selected_lines[j]);
             right_flag = true;
-        } else {
+        } else if (slopes[j] < 0 && fini.x < img_center && ini.x < img_center) {
             left_lines.push_back(selected_lines[j]);
             left_flag = true;
         }
-        ++j;
+        j++;
     }
-    
-    
     
     output[0] = right_lines;
     output[1] = left_lines;
@@ -111,13 +166,18 @@ std::vector<cv::Point> regression(std::vector<std::vector<cv::Vec4i> > left_righ
             fini = cv::Point(i[2], i[3]);
             right_pts.push_back(ini);
             right_pts.push_back(fini);
+            
         }
+        
         if (right_pts.size() > 0) {
             // The right line is formed here
             cv::fitLine(right_pts, right_line, DIST_L2, 0, 0.01, 0.01);
             right_m = right_line[1] / right_line[0];
             right_b = cv::Point(right_line[2], right_line[3]);
         }
+        
+    } else {
+        cout<<"No right lane"<<endl;
     }
     // If left lines are being detected, fit a line using all the init and final points of the lines
     if (left_flag == true) {
@@ -126,22 +186,38 @@ std::vector<cv::Point> regression(std::vector<std::vector<cv::Vec4i> > left_righ
             fini2 = cv::Point(j[2], j[3]);
             left_pts.push_back(ini2);
             left_pts.push_back(fini2);
+            
+        
         }
+        
         if (left_pts.size() > 0) {
             // The left line is formed here
             cv::fitLine(left_pts, left_line, DIST_L2, 0, 0.01, 0.01);
             left_m = left_line[1] / left_line[0];
             left_b = cv::Point(left_line[2], left_line[3]);
         }
+    } else {
+        cout<<"NO left lane"<<endl;
     }
     // One the slope and offset points have been obtained, apply the line equation to obtain the line points
-    int ini_y = inputImage.rows;
-    int fin_y = 250;
+    int ini_y = inputImage.rows ;
+    int fin_y = 360;
     
     double right_ini_x = ((ini_y - right_b.y) / right_m) + right_b.x;
     double right_fin_x = ((fin_y - right_b.y) / right_m) + right_b.x;
+    
+
     double left_ini_x = ((ini_y - left_b.y) / left_m) + left_b.x;
     double left_fin_x = ((fin_y - left_b.y) / left_m) + left_b.x;
+    
+    cout<<endl;
+    cout<<"right_ini_x = "<<right_ini_x<<endl;
+    cout<<"right_fin_x = "<<right_fin_x<<endl;
+    cout<<"left_ini_x = "<<left_ini_x<<endl;
+    cout<<"left_fin_x = "<<left_fin_x<<endl;
+    
+    
+    
     output[0] = cv::Point(right_ini_x, ini_y);
     output[1] = cv::Point(right_fin_x, fin_y);
     output[2] = cv::Point(left_ini_x, ini_y);
@@ -164,10 +240,6 @@ void plotLane(Mat inputImage, vector<Point> lane)
     poly_points.push_back(lane[1]);
     poly_points.push_back(lane[3]);
     
-    cout<<lane<<endl;
-    cout<<inputImage.rows<<","<<inputImage.cols<<endl;
-    
-    
 
     fillConvexPoly(output, poly_points, Scalar(0,255,0));
     addWeighted(output, 0.3, inputImage, 1.0, -0.3, inputImage);
@@ -175,7 +247,6 @@ void plotLane(Mat inputImage, vector<Point> lane)
     line(inputImage, lane[0], lane[1], Scalar(0,0,255),2, LINE_AA);
     line(inputImage, lane[2], lane[3], Scalar(0,0,255),2, LINE_AA);
     
-    imshow("output", output);
     imshow("image", inputImage);
-    waitKey();
+
 }
