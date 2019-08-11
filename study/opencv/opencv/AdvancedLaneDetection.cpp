@@ -36,13 +36,6 @@ Mat AdvnacedLaneDetection::transformingToSkyview(Mat input) {
     Mat output(warpSize, input.type());
     Mat transformationMatrix;
     
-    //Points For Warping
-    vector<Point2f> destPts = {
-                               Point2f(srcPts[0].x , 330), Point2f(srcPts[0].x ,0),
-                               Point2f(srcPts[3].x, 0), Point2f(srcPts[3].x , 330)
-                               };
-    
-    
     // Get Transformation Matrix
     transformationMatrix = getPerspectiveTransform(srcPts, destPts);
     

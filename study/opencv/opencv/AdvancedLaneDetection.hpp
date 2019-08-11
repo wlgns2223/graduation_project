@@ -15,11 +15,22 @@ using namespace std;
 class AdvnacedLaneDetection {
     
 private:
-    //Trapezoid_vertices coordinates
-    vector<Point2f> srcPts = {Point2f(127,323), Point2f(257,240) , Point2f(387, 240), Point2f(527,323)};
-    
-    
     Mat img;
+    
+    //Trapezoid_vertices coordinates
+    const vector<Point2f> srcPts = {
+        Point2f(80,350), Point2f(290,220) ,
+        Point2f(350, 220), Point2f(580,350)
+        
+    };
+    
+    //Points For Warping
+    const vector<Point2f> destPts = {
+        Point2f(160, 350), Point2f(160,0),
+        Point2f(500, 0), Point2f(500, 350)
+    };
+
+    
     const int sobelMinThreshold = 60;
     const int sobelMaxThreshold = 200;
     

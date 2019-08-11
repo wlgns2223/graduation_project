@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include "AdvancedLaneDetection.hpp"
+#include "Calibration.hpp"
 
 
 
@@ -23,58 +24,46 @@ int main(int argc, const char * argv[])
     string curvePath1 = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test5.jpg";
     string curvePath2 =  "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test4.jpg";
     
+    string chessboard = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/camera_cal/calibration";
+    string xmlPath = "/Users/shimjihoon/Desktop/programming/study/opencv/opencv/";
     
-    AdvnacedLaneDetection lane = AdvnacedLaneDetection(curvePath1);
-    Mat img = lane.getImg();
-    Mat output;
-    output = lane.sobelColorThresholding(img);
+    Calibration cal;
+    cal.cameraCalibration(chessboard);
+    cal.saveCameraMatrix(xmlPath);
+    cal.loadCameraMatrix(xmlPath, "cameraMatrix.xml");
     
-    imshow("output", output);
+    Mat img = imread(filePath1);
+    Mat un = cal.getUndistortedImg(img);
+    imshow("img", img);
+    imshow("un", un);
     waitKey();
     
     
     
-    
-    
-    
-//    Mat hlsImg;
-//    Mat hls[3];
-//    Mat sobelx;
-//
-//
-//    cvtColor(img, hlsImg, COLOR_BGR2HLS_FULL);
-//    split(hlsImg, hls);
-//    Mat l_channel = hls[1];
-//    Mat s_channel = hls[2];
-//
-//    // Sobel X Gradient Thresholding
-//    Sobel(l_channel, sobelx, CV_64F, 1, 0);
-//    convertScaleAbs(sobelx, sobelx);
-//    Mat sxbinary = Mat::zeros(sobelx.size(), sobelx.type());
-//    inRange(sobelx, Scalar(60), Scalar(180), sxbinary);
-//
-//
-//    // Threshold Color Channel
-//    Mat s_binary = Mat::zeros(s_channel.size(), s_channel.type());
-//    inRange(s_channel, Scalar(170), Scalar(255), s_binary);
-//
-//    Mat temp = Mat::zeros(sxbinary.size(), sxbinary.type());
-//    hls[0] = temp.clone();
-//    hls[1] = sxbinary.clone();
-//    hls[2] = s_binary.clone();
-//
-//
-//
-//
-//    merge(hls, 3, hlsImg);
-//
-//    Mat combined = Mat::zeros(s_channel.size(), s_channel.type());
-//
-//    bitwise_or(sxbinary, s_binary, combined);
-//
-//    imshow("sxbinary", sxbinary);
-//    imshow("s_binary", s_binary);
-//    imshow("color", hlsImg);
-//    imshow("merged", combined);
-
 }
+
+//AdvnacedLaneDetection lane = AdvnacedLaneDetection(filePath1);
+//Mat img = lane.getImg();
+//Mat output;
+//
+////Trapezoid_vertices coordinates
+//vector<Point2f> srcPts = {
+//    Point2f(100,350), Point2f(300,220) ,
+//    Point2f(340, 220), Point2f(560,350)
+//
+//};
+//
+////Points For Warping
+//vector<Point2f> destPts = {
+//    Point2f(80, 350), Point2f(80,0),
+//    Point2f(580, 0), Point2f(580, 350)
+//};
+//
+//line(img, srcPts[0], srcPts[1], Scalar(0,0,255));
+//line(img, srcPts[2], srcPts[3], Scalar(0,0,255));
+//
+//Mat transMat = getPerspectiveTransform(srcPts, destPts);
+//warpPerspective(img, output, transMat, img.size());
+//
+//imshow("img", img);
+//imshow("output", output);
