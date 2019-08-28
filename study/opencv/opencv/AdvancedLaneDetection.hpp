@@ -19,30 +19,35 @@ private:
     
     //Trapezoid_vertices coordinates
     const vector<Point2f> srcPts = {
-        Point2f(80,350), Point2f(290,220) ,
-        Point2f(350, 220), Point2f(580,350)
+        Point2f(130,340), Point2f(290,230) ,
+        Point2f(355, 230), Point2f(530,340)
         
     };
     
     //Points For Warping
     const vector<Point2f> destPts = {
-        Point2f(160, 350), Point2f(160,0),
-        Point2f(500, 0), Point2f(500, 350)
+        Point2f(115, 340), Point2f(115,0),
+        Point2f(545, 0), Point2f(545, 340)
     };
 
     
-    const int sobelMinThreshold = 60;
-    const int sobelMaxThreshold = 200;
+    const int sobelMinThreshold = 35;
+    const int sobelMaxThreshold = 220;
     
-    const int colorMinThreshold = 160;
-    const int colorMaxThreshold = 235;
+    const int colorMinThreshold = 100;
+    const int colorMaxThreshold = 255;
+    const int nwindows = 9;
+    const int margin = 50;
+    
+    Size size = Size(640, 360);
     
     Mat loadImgAndResize(String path, int flag = IMREAD_COLOR);
     Mat sobelThresholding(Mat input, string dir = "x");
     Mat colorThresholding(Mat input);
+    Mat changeSize(Mat input);
     
-    
-    
+    void drawCurveline(Mat input, vector<Point> leftPt, vector<Point> rightPt);
+
 public:
     AdvnacedLaneDetection();
     AdvnacedLaneDetection(String path, int flag = IMREAD_COLOR);
@@ -50,11 +55,8 @@ public:
     Mat getImg();
     Mat transformingToSkyview(Mat input);
     Mat sobelColorThresholding(Mat input);
-    
-    
+    Mat windowSearch(Mat input);
 };
 
-
-
-
+void polyfit(const Mat& src_x, const Mat& src_y, Mat& dst, int order);
 #endif /* AdvancedLaneDetection_hpp */
