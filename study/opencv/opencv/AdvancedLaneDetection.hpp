@@ -44,7 +44,7 @@ private:
     Mat loadImgAndResize(String path, int flag = IMREAD_COLOR);
     Mat sobelThresholding(Mat input, string dir = "x");
     Mat colorThresholding(Mat input);
-    Mat changeSize(Mat input);
+    void changeSize(Mat input);
     
     void drawCurveline(Mat input, vector<Point> leftPt, vector<Point> rightPt);
 
@@ -53,8 +53,14 @@ public:
     AdvnacedLaneDetection(String path, int flag = IMREAD_COLOR);
     
     Mat getImg();
+    
+    //Change view perspective from normal to bird eye view
     Mat transformingToSkyview(Mat input);
+    
+    //apply sobel edge and thresholding
     Mat sobelColorThresholding(Mat input);
+    
+    //find out pixels(Point) in windows and draw left and right curve fitting to lanes
     Mat windowSearch(Mat input);
 };
 
