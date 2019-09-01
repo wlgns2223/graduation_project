@@ -20,16 +20,9 @@ private:
     int numCornersVer = 6;
     int numSquares = numCornersHor * numCornersVer;
     Size boardSize = Size(numCornersHor, numCornersVer);
+    const Size size = Size(640,360);
     Mat intrinsic = Mat(3,3, CV_32FC1);
     Mat distCoeffs;
-    
-    
-    
-    
-    
-    
-    
-
     
     
 public:

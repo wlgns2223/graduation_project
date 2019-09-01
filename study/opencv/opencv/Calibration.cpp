@@ -94,9 +94,8 @@ void Calibration::loadCameraMatrix(String filePath, String name){
 Mat Calibration::getUndistortedImg(Mat input){
     
     Mat img;
-    Size size = Size(640,360);
-    if(input.size() != size )
-        resize(input, input, size);
+    if(input.size() != this->size )
+        resize(input, input, this->size);
 
     undistort(input, img, this->intrinsic, this->distCoeffs);
     return img;

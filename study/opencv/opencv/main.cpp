@@ -35,31 +35,54 @@ void draw_histo(Mat hist, Mat &hist_img,int channel, Size size = Size(256,200)){
     flip(hist_img, hist_img, 0);
 }
 
+string filePath1  = "/Users/shimjihoon/Desktop/programming/study/opencv/sample/test_images/straight_lines1.jpg";
+string filePath2  = "/Users/shimjihoon/Desktop/programming/study/opencv/sample/test_images/straight_lines2.jpg";
+string filePath3 = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test2.jpg";
+string filePath4 = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test3.jpg";
+
+string curvePath1 = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test5.jpg";
+string curvePath2 =  "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test4.jpg";
+
+string chessboard = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/camera_cal/calibration";
+
 int main(int argc, const char * argv[])
 {
-    string filePath1  = "/Users/shimjihoon/Desktop/programming/study/opencv/sample/test_images/straight_lines1.jpg";
-    string filePath2  = "/Users/shimjihoon/Desktop/programming/study/opencv/sample/test_images/straight_lines2.jpg";
-    string filePath3 = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test2.jpg";
-    string filePath4 = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test3.jpg";
     
-    
-    string curvePath1 = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test5.jpg";
-    string curvePath2 =  "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test4.jpg";
-    
-    string chessboard = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/camera_cal/calibration";
     string xmlPath = "/Users/shimjihoon/Desktop/programming/study/opencv/opencv/";
+    string videoPath = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/project_video.mp4";
     
-    Mat img = imread(filePath4);
+    VideoCapture capture(videoPath);
+    CV_Assert(capture.isOpened());
+    
+    Size size = Size(640,360);
+    Mat frame;
+    
+//    Mat img = imread(filePath4);
+//    resize(img, img, Size(640,360));
+    
     AdvnacedLaneDetection detector;
     Calibration cali;
     cali.loadCameraMatrix(xmlPath, "cameraMatrix.xml");
-    Mat undis = cali.getUndistortedImg(img);
-    Mat trans = detector.transformingToSkyview(undis);
-    Mat sobel = detector.sobelColorThresholding(trans);
-    Mat curve = detector.windowSearch(sobel);
     
-    imshow("test", curve);
-    waitKey();
+    double frame_rate = capture.get(CAP_PROP_FPS);
+    int delay = 1000 / frame_rate;
 
-
+    while(capture.read(frame)){
+        
+        if(waitKey(delay) >= 0) break;
+        resize(frame, frame, size);
+        cout<<"frame read\n";
+        Mat undis = cali.getUndistortedImg(frame);
+        Mat trans = detector.transformingView(undis, BIRDEYE_VIEW);
+        Mat sobel = detector.sobelColorThresholding(trans);
+        Mat curve = detector.windowSearch(sobel);
+        Mat temp = detector.transformingView(curve, NORMAL_VIEW);
+        Mat output = detector.drawPolyArea(frame);
+        
+        imshow("video", output);
+    }
+    
+    
+    
+    
 }

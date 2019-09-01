@@ -38,7 +38,7 @@ Mat AdvnacedLaneDetection::getImg(){
 }
 
 
-Mat AdvnacedLaneDetection::transformingToSkyview(Mat input) {
+Mat AdvnacedLaneDetection::transformingView(Mat input, const int flag){
     //Change perspective from driver view to bird eye view
     
     //Param
@@ -52,14 +52,29 @@ Mat AdvnacedLaneDetection::transformingToSkyview(Mat input) {
     Mat output(warpSize, input.type());
     Mat transformationMatrix;
     
-    // Get Transformation Matrix
-    transformationMatrix = getPerspectiveTransform(srcPts, destPts);
-    
-    //Warping perspective
-    warpPerspective(input, output, transformationMatrix, warpSize);
+    switch(flag){
+        case BIRDEYE_VIEW:
+            // Get Transformation Matrix
+            transformationMatrix = getPerspectiveTransform(srcPts, destPts);
+            //Warping perspective
+            warpPerspective(input, output, transformationMatrix, warpSize, INTER_LINEAR);
+            break;
+            
+        case NORMAL_VIEW:
+            transformationMatrix = getPerspectiveTransform(destPts, srcPts);
+            warpPerspective(input, output, transformationMatrix, warpSize,INTER_LINEAR);
+            break;
+        default:
+            cerr<<"ERROR: FLAG ERROR\n";
+            break;
+    }
     
     return output;
+    
+    
+    
 }
+
 
 Mat AdvnacedLaneDetection::sobelThresholding(Mat input, string dir){
     // Sobel Direction (x) and Thresholding
@@ -155,65 +170,6 @@ Mat AdvnacedLaneDetection::sobelColorThresholding(Mat input){
     
 }
 
-void AdvnacedLaneDetection::drawCurveline(Mat input, vector<Point> leftPt, vector<Point> rightPt){
-    //Draw left and right curve fitting to lanes in windows
-    
-    //Param
-    //Input   : Mat type image
-    //leftPt  : best-fit pixels that exist in windows of left lane
-    //rightPt : best-fit pixels that exist in windows of right lane
-    
-    //Result
-    //Draw a best-fit line of pixels in left or right window
-    
-    //Store X,Y Points of left and right pixels in window To vector
-    vector<float> leftx, lefty, rightx, righty;
-    for(auto _good_left : leftPt){
-        leftx.push_back(_good_left.x);
-        lefty.push_back(_good_left.y);
-    }
-    
-    for(auto _good_right : rightPt){
-        rightx.push_back(_good_right.x);
-        righty.push_back(_good_right.y);
-    }
-    
-    int leftRow = (int)leftx.size();
-    Mat leftxMat(leftRow, 1 , CV_32FC1, leftx.data());
-    Mat leftyMat(leftRow, 1, CV_32FC1, lefty.data());
-    Mat leftDst(3,1, CV_32FC1 );
-    
-    // find out coefficients of polynomial equiation
-    // OpenCV 2.x ver funciton, now deprecated
-    // https://github.com/stonier/opencv2/blob/master/modules/contrib/src/polyfit.cpp
-    polyfit(leftyMat, leftxMat, leftDst, 2);
-    
-    int rightRow = (int)rightx.size();
-    Mat rightxMat(rightRow,1, CV_32FC1, rightx.data());
-    Mat rightyMat(rightRow, 1, CV_32FC1, righty.data());
-    Mat rightDst(3,1, CV_32FC1 );
-    polyfit(rightyMat, rightxMat, rightDst, 2);
-
-    // Order of Coefficients
-    // f(x) = leftCoef[2] * x * x + leftCoef[1] * x + leftCoef[0]
-    float leftCoef[3] = {leftDst.at<float>(2,0), leftDst.at<float>(1,0), leftDst.at<float>(0,0)};
-    float rightCoef[3] = {rightDst.at<float>(2,0), rightDst.at<float>(1, 0), rightDst.at<float>(0,0) };
-    float leftFitx,rightFitx;
-    vector<Point> leftFitPt, rightFitPt;
-    
-    // Calculate x pixel position based on Y ( input Image Height ) and coefficients
-    for(int i=0; i<input.size().height; ++i){
-        
-        leftFitx = leftCoef[0] * i * i + leftCoef[1] * i + leftCoef[2];
-        rightFitx = rightCoef[0] * i * i + rightCoef[1] * i + rightCoef[2];
-        leftFitPt.push_back(Point(leftFitx, i));
-        rightFitPt.push_back(Point(rightFitx, i));
-    }
-    
-    //Draw best-fit curves
-    polylines(input, leftFitPt, false, Scalar(0,255,255));
-    polylines(input, rightFitPt, false, Scalar(0,255,255));
-}
 
 Mat AdvnacedLaneDetection::windowSearch(Mat input){
     //find out pixels in left and right windows
@@ -265,8 +221,8 @@ Mat AdvnacedLaneDetection::windowSearch(Mat input){
         int win_xright_low = rightx_current.x - margin;
         int win_xright_high = rightx_current.x + margin;
         
-        rectangle(out, Point(win_xleft_low, win_y_low), Point(win_xleft_high, win_y_high), Scalar(0,255,0));
-        rectangle(out, Point(win_xright_low, win_y_low), Point(win_xright_high, win_y_high), Scalar(0,255,0));
+        rectangle(out, Point(win_xleft_low, win_y_low), Point(win_xleft_high, win_y_high), GREEN);
+        rectangle(out, Point(win_xright_low, win_y_low), Point(win_xright_high, win_y_high), GREEN);
         
         //Index to calculate mean points
         vector<Point>leftIdx, rightIdx;
@@ -300,6 +256,136 @@ Mat AdvnacedLaneDetection::windowSearch(Mat input){
     drawCurveline(out, good_left_idx, good_right_idx);
     
     return out;
+}
+
+void AdvnacedLaneDetection::drawCurveline(Mat input, vector<Point> leftPt, vector<Point> rightPt){
+    //Draw left and right curve fitting to lanes in windows
+    
+    //Param
+    //Input   : Mat type image
+    //leftPt  : best-fit pixels that exist in windows of left lane
+    //rightPt : best-fit pixels that exist in windows of right lane
+    
+    //Result
+    //Draw a best-fit line of pixels in left or right window
+    
+    //Store X,Y Points of left and right pixels in window To vector
+    vector<float> leftx, lefty, rightx, righty;
+    for(auto _good_left : leftPt){
+        leftx.push_back(_good_left.x);
+        lefty.push_back(_good_left.y);
+    }
+    
+    for(auto _good_right : rightPt){
+        rightx.push_back(_good_right.x);
+        righty.push_back(_good_right.y);
+    }
+    
+    int leftRow = (int)leftx.size();
+    Mat leftxMat(leftRow, 1 , CV_32FC1, leftx.data());
+    Mat leftyMat(leftRow, 1, CV_32FC1, lefty.data());
+    Mat leftDst(3,1, CV_32FC1 );
+    
+    // find out coefficients of polynomial equiation
+    // OpenCV 2.x ver funciton, now deprecated
+    // https://github.com/stonier/opencv2/blob/master/modules/contrib/src/polyfit.cpp
+    polyfit(leftyMat, leftxMat, leftDst, 2);
+    
+    int rightRow = (int)rightx.size();
+    Mat rightxMat(rightRow,1, CV_32FC1, rightx.data());
+    Mat rightyMat(rightRow, 1, CV_32FC1, righty.data());
+    Mat rightDst(3,1, CV_32FC1 );
+    polyfit(rightyMat, rightxMat, rightDst, 2);
+    
+    // Order of Coefficients
+    // f(x) = leftCoef[2] * x * x + leftCoef[1] * x + leftCoef[0]
+    float leftCoef[3] = {leftDst.at<float>(2,0), leftDst.at<float>(1,0), leftDst.at<float>(0,0)};
+    float rightCoef[3] = {rightDst.at<float>(2,0), rightDst.at<float>(1, 0), rightDst.at<float>(0,0) };
+    float leftFitx,rightFitx;
+    
+    
+    
+    // Calculate x pixel position based on Y ( input Image Height ) and coefficients
+    for(int i=0; i<input.size().height; ++i){
+        
+        leftFitx = leftCoef[0] * i * i + leftCoef[1] * i + leftCoef[2];
+        rightFitx = rightCoef[0] * i * i + rightCoef[1] * i + rightCoef[2];
+        leftFitPt.push_back(Point(leftFitx, i));
+        rightFitPt.push_back(Point(rightFitx, i));
+        
+        //Left Curve + margin and - margin
+        leftFit_windowLine1.push_back(Point(leftFitx- margin, i));
+        leftFit_windowLine2.push_back(Point(leftFitx+ margin, i));
+        
+        //Right Curve + margin and - margin
+        rightFit_windowLine1.push_back(Point(rightFitx - margin, i));
+        rightFit_windowLine2.push_back(Point(rightFitx + margin, i));
+        
+    }
+    
+    
+    
+    //Draw Window Curves
+    drawWindowLine(input);
+    
+    
+}
+
+void AdvnacedLaneDetection::drawWindowLine(Mat input){
+    
+    //Draw best-fit curves
+    polylines(input, leftFitPt, false, YELLOW);
+    polylines(input, rightFitPt, false, YELLOW);
+    
+    //Draw fit curves + margins , - margin
+    polylines(input, leftFit_windowLine1, false, YELLOW);
+    polylines(input, leftFit_windowLine2, false, YELLOW);
+    polylines(input, rightFit_windowLine1, false, YELLOW);
+    polylines(input, rightFit_windowLine2, false, YELLOW);
+    
+    
+    Mat windowCurve = Mat::zeros(input.size(), input.type());
+    vector<Point> left = leftFit_windowLine1;
+    vector<Point> right = rightFit_windowLine1;
+    reverse(leftFit_windowLine2.begin(), leftFit_windowLine2.end());
+    reverse(rightFit_windowLine2.begin(), rightFit_windowLine2.end());
+    left.insert(left.end(), leftFit_windowLine2.begin(), leftFit_windowLine2.end());
+    right.insert(right.end(), rightFit_windowLine2.begin(), rightFit_windowLine2.end());
+    fillConvexPoly(windowCurve, left, GREEN);
+    fillConvexPoly(windowCurve, right, GREEN);
+    addWeighted(input, 1, windowCurve, 0.3, 0, input);
+    
+    
+}
+
+Mat AdvnacedLaneDetection::drawPolyArea(Mat input) {
+    
+    Mat area = Mat::zeros(input.size(), input.type());
+    Mat transformedArea;
+    Mat output;
+    vector<Point> polyAreaPts = leftFitPt;
+    reverse(rightFitPt.begin(), rightFitPt.end());
+    polyAreaPts.insert(polyAreaPts.end(), rightFitPt.begin(), rightFitPt.end());
+    fillConvexPoly(area, polyAreaPts, GREEN);
+    transformedArea =  transformingView(area, NORMAL_VIEW);
+    addWeighted(input, 1, transformedArea, 0.3, 0, output);
+    
+    // Clear Class Member Point Vector data
+    clearFitPtVec();
+    
+    return output;
+    
+}
+
+void AdvnacedLaneDetection::clearFitPtVec(){
+    leftFitPt.clear();
+    rightFitPt.clear();
+    
+    leftFit_windowLine1.clear();
+    leftFit_windowLine2.clear();
+    
+    rightFit_windowLine1.clear();
+    rightFit_windowLine2.clear();
 }
 
 void polyfit(const Mat& src_x, const Mat& src_y, Mat& dst, int order)
