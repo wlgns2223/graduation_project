@@ -20,4 +20,5 @@ and thought C/C++ is suitable for embedded software for vehicle.
 
 I am going to apply Mask R-CNN to my project and will probaby change sample video
 
+<iframe width="640" height = '360" src="https://youtu.be/u2mmfdRicSQ" frameboarder="0"></iframe>
 
