@@ -44,7 +44,7 @@ Mat AdvnacedLaneDetection::transformingView(Mat input, const int flag){
     //Param
     //Input : Mat type Image
     
-    //Change size
+    //Change     
     changeSize(input);
     
     
@@ -89,17 +89,15 @@ Mat AdvnacedLaneDetection::sobelThresholding(Mat input, string dir){
     //range sobelMinThreshold to sobelMaxThreshold
     
     
-    Mat l_channel, sobel;
-    l_channel = input;
-    Mat sxbinary = Mat::zeros(sobel.size(), sobel.type());
-    
-    if(dir == "x")
-        Sobel(l_channel, sobel, CV_64F, 1, 0);
-    if(dir == "y")
-        Sobel(l_channel, sobel, CV_64F, 0, 1);
+    Mat sobel;
+    Mat sxbinary = Mat::zeros(input.size(), input.type());
     
     // Sobel X Gradient Thresholding
-    Sobel(l_channel, sobel, CV_64F, 1, 0);
+    if(dir == "x")
+        Sobel(input, sobel, CV_64F, 1, 0);
+    if(dir == "y")
+        Sobel(input, sobel, CV_64F, 0, 1);
+    
     convertScaleAbs(sobel, sobel);
     
     //Range based thresholding.
@@ -141,30 +139,29 @@ Mat AdvnacedLaneDetection::sobelColorThresholding(Mat input){
     // sobel threshold img and color threshold img
     
     changeSize(input);
-    
-    Mat hlsImg;
+        
     Mat sxbinary;
     Mat s_binary;
     Mat output;
-    Mat hls[3];
+    Mat splitedColor[3];
     
-    //Convert Color from BGR to HLS channel
-    cvtColor(input, hlsImg, COLOR_BGR2HLS_FULL);
+//    //Convert Color from BGR to HLS channel
+//    cvtColor(input, input, COLOR_BGR2HLS);
     
-    //Split HLS Color spaces into H, L, S and store them in hls array
-    split(hlsImg, hls);
+    //Split BGR Color spaces into B, G, R and store them in splitedColor array
+    split(input, splitedColor);
     
-    Mat l_channel = hls[1].clone();
-    Mat s_channel = hls[2].clone();
+    Mat imgForSobel = splitedColor[1].clone();
+    Mat imgForColor = splitedColor[2].clone();
     
-    //Apply sobelThresholding to L channel Image
-    sxbinary = sobelThresholding(l_channel);
+    //Apply sobelThresholding to G channel Image
+    sxbinary = sobelThresholding(imgForSobel);
     
-    //Apply colorThresholding to S channel Image
-    s_binary = colorThresholding(s_channel);
+    //Apply colorThresholding to R channel Image
+    s_binary = colorThresholding(imgForColor);
     
     //Bitwise operation to sum sobelThresholding and colorThresholding Images
-    bitwise_or(sxbinary, s_binary, output);
+    bitwise_and(sxbinary, s_binary, output);
     
     return output;
     
@@ -185,8 +182,8 @@ Mat AdvnacedLaneDetection::windowSearch(Mat input){
     
     int midPoint = (int)hist.cols / 2;
     Point leftx_base, rightx_base;
-    Mat bottomLeft = hist.colRange(0, midPoint);
-    Mat bottomRight = hist.colRange(midPoint, hist.cols);
+    Mat bottomLeft = hist.colRange(0, midPoint );
+    Mat bottomRight = hist.colRange(midPoint , hist.cols);
 
     //Find out minimum value (most less summed pixels)
     minMaxLoc(bottomLeft, nullptr, nullptr, nullptr, &leftx_base);
@@ -386,6 +383,17 @@ void AdvnacedLaneDetection::clearFitPtVec(){
     
     rightFit_windowLine1.clear();
     rightFit_windowLine2.clear();
+}
+
+Mat AdvnacedLaneDetection::detectionPipeline(Mat input, Mat img)
+{
+    Mat trans = transformingView(input, BIRDEYE_VIEW);
+    Mat sobel = sobelColorThresholding(trans);
+    Mat curve = windowSearch(sobel);
+    Mat temp = transformingView(curve, NORMAL_VIEW);
+    Mat output = drawPolyArea(img);
+    
+    return output;
 }
 
 void polyfit(const Mat& src_x, const Mat& src_y, Mat& dst, int order)

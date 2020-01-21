@@ -8,9 +8,7 @@
 
 #ifndef AdvancedLaneDetection_hpp
 #define AdvancedLaneDetection_hpp
-#include <opencv2/opencv.hpp>
-using namespace cv;
-using namespace std;
+#include "detectionHeader.h"
 
 #define BIRDEYE_VIEW 0
 #define NORMAL_VIEW  1
@@ -20,36 +18,58 @@ class AdvnacedLaneDetection {
 private:
     Mat img;
     
-    //Trapezoid_vertices coordinates
+//    Original Points
+//    //Trapezoid_vertices coordinates
+//    const vector<Point2f> srcPts = {
+//        Point2f(130,340), Point2f(290,230) ,
+//        Point2f(355, 230), Point2f(530,340)
+//
+//    };
+//
+//    //Points For Warping
+//    const vector<Point2f> destPts = {
+//        Point2f(115, 340), Point2f(115,0),
+//        Point2f(545, 0), Point2f(545, 340)
+//    };
+    
     const vector<Point2f> srcPts = {
-        Point2f(130,340), Point2f(290,230) ,
-        Point2f(355, 230), Point2f(530,340)
-        
+        Point2f(110,540), Point2f(430,330),
+        Point2f(530,330), Point2f(890,540)
     };
-    
-    //Points For Warping
+
     const vector<Point2f> destPts = {
-        Point2f(115, 340), Point2f(115,0),
-        Point2f(545, 0), Point2f(545, 340)
+        Point2f(110,540), Point2f(110, 0),
+        Point2f(800,0), Point2f(800,540)
     };
     
+
     vector<Point> leftFitPt, rightFitPt;
     vector<Point> leftFit_windowLine1,leftFit_windowLine2;
     vector<Point> rightFit_windowLine1, rightFit_windowLine2;
     
-    Size size = Size(640, 360);
+    //Original Sample Size Size(640, 360)
+    const Size size = Size(960,540);
     
-    Scalar GREEN = Scalar(0,255,0);
-    Scalar BLUE = Scalar(255,0,0);
-    Scalar RED = Scalar(0,0,255);
+    
+    Scalar GREEN  = Scalar(0,255,0);
+    Scalar BLUE   = Scalar(255,0,0);
+    Scalar RED    = Scalar(0,0,255);
     Scalar YELLOW = Scalar(0,255,255);
 
+    // Original Threshold ( Yellow + White)
+//    const int sobelMinThreshold = 35;
+//    const int sobelMaxThreshold = 220;
+//
+//    const int colorMinThreshold = 100;
+//    const int colorMaxThreshold = 255;
     
-    const int sobelMinThreshold = 35;
-    const int sobelMaxThreshold = 220;
+    const int sobelMinThreshold = 30;
+    const int sobelMaxThreshold = 255;
     
     const int colorMinThreshold = 100;
     const int colorMaxThreshold = 255;
+    
+    
     const int nwindows = 9;
     const int margin = 50;
     
@@ -78,6 +98,8 @@ public:
     Mat windowSearch(Mat input);
     
     Mat drawPolyArea(Mat input);
+    
+    Mat detectionPipeline(Mat input, Mat img);
         
 };
 

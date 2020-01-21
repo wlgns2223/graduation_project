@@ -5,82 +5,101 @@
 //  Created by 심지훈 on 31/03/2019.
 //  Copyright © 2019 Shim. All rights reserved.
 //
-#include <iostream>
+
 #include <string>
+#include <opencv2/dnn.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include "AdvancedLaneDetection.hpp"
 #include "Calibration.hpp"
+#include "ObjectDetection.hpp"
+#include "Utility.hpp"
 
+//    Order of Pipeline
+//    Mat trans = detector.transformingView(undis, BIRDEYE_VIEW);
+//    Mat sobel = detector.sobelColorThresholding(trans);
+//    Mat curve = detector.windowSearch(sobel);
+//    Mat temp = detector.transformingView(curve, NORMAL_VIEW);
+//    Mat output = detector.drawPolyArea(img);
 
-
-void mouseOnClick(int event, int x, int y, int flags, void* userdata){
-    if(event == EVENT_LBUTTONDOWN)
-        cout<<"( "<<x<<", "<<y<<" )\n";
-}
-
-void draw_histo(Mat hist, Mat &hist_img,int channel, Size size = Size(256,200)){
-    hist_img = Mat(size, channel, Scalar(255));
-    float bin = (float)hist_img.cols / hist.rows;
-    normalize(hist, hist, 0 ,hist_img.rows, NORM_MINMAX);
-    
-    for(int i=0; i<hist.rows; ++i){
-        float start_x = i * bin;
-        float end_x = (i+1) * bin;
-        Point2f pt1(start_x,0);
-        Point2f pt2(end_x, hist.at<float>(i));
-        
-        if(pt2.y > 0)
-            rectangle(hist_img,pt1, pt2, Scalar(0), -1);
-    }
-    
-    flip(hist_img, hist_img, 0);
-}
-
-string filePath1  = "/Users/shimjihoon/Desktop/programming/study/opencv/sample/test_images/straight_lines1.jpg";
-string filePath2  = "/Users/shimjihoon/Desktop/programming/study/opencv/sample/test_images/straight_lines2.jpg";
-string filePath3 = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test2.jpg";
-string filePath4 = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test3.jpg";
-
-string curvePath1 = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test5.jpg";
-string curvePath2 =  "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/test_images/test4.jpg";
-
-string chessboard = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/camera_cal/calibration";
+string savePath = "/Users/shimjihoon/Desktop/programming/study/opencv";
 
 int main(int argc, const char * argv[])
 {
     
-    string xmlPath = "/Users/shimjihoon/Desktop/programming/study/opencv/opencv/";
-    string videoPath = "/Users/shimjihoon/Desktop/programming/study/opencv/Advanced-Lane-Lines-master/project_video.mp4";
+    string video = "/Users/shimjihoon/Desktop/programming/study/opencv/sample/finalTest/test.mp4";
+    string colorPath = "/Users/shimjihoon/Desktop/programming/study/opencv/MaskRCNN/colors.txt";
+    string labelPath = "/Users/shimjihoon/Desktop/programming/study/opencv/MaskRCNN/mscoco_labels.names";
+    string textGraph = "/Users/shimjihoon/Desktop/programming/study/opencv/MaskRCNN/mask_rcnn_inception_v2_coco_2018_01_28.pbtxt";
+    string modelWeights = "/Users/shimjihoon/Desktop/programming/study/opencv/MaskRCNN/detectionModel/frozen_inference_graph.pb";
     
-    VideoCapture capture(videoPath);
+    string outputPath = "/Users/shimjihoon/Desktop/";
+    
+    
+    Size size(960,540);
+    
+    
+    VideoCapture capture(video);
+    
     CV_Assert(capture.isOpened());
     
-    Size size = Size(640,360);
-    Mat frame;
-    
-//    Mat img = imread(filePath4);
-//    resize(img, img, Size(640,360));
-    
     AdvnacedLaneDetection detector;
-    Calibration cali;
-    cali.loadCameraMatrix(xmlPath, "cameraMatrix.xml");
     
-    double frame_rate = capture.get(CAP_PROP_FPS);
-    int delay = 1000 / frame_rate;
-
+    double fps = 30.0;
+    int delay = cvRound(1000.0 / fps);
+    
+    Mat frame;
+    Mat originalImg;
+    Mat detected;
+    
+    loadColors(colorPath);
+    loadNameOfClasses(labelPath);
+    VideoWriter sobel_vid;
+//    detected_vid.open(outputPath+"detected.mp4", VideoWriter::fourcc('M', 'P', '4', 'V'), fps, size);
+//    trans_vid.open(outputPath+"trans.mp4", VideoWriter::fourcc('M', 'P', '4', 'V'), fps, size);
+//    curve_vid.open(outputPath+"curve.mp4", VideoWriter::fourcc('M', 'P', '4', 'V'), fps, size);
+//    frame_vid.open(outputPath+"frame.mp4", VideoWriter::fourcc('M', 'P', '4', 'V'), fps, size);
+//    temp_vid.open(outputPath+"temp.mp4", VideoWriter::fourcc('M', 'P', '4', 'V'), fps, size);
+    sobel_vid.open(outputPath+"sobel.mp4", VideoWriter::fourcc('M', 'P', '4', 'V'), fps, size);
+    
+    
     while(capture.read(frame)){
+        if(waitKey(delay) == 0) break;
         
-        if(waitKey(delay) >= 0) break;
         resize(frame, frame, size);
-        cout<<"frame read\n";
-        Mat undis = cali.getUndistortedImg(frame);
-        Mat trans = detector.transformingView(undis, BIRDEYE_VIEW);
+        originalImg = frame.clone();
+    
+        Mat trans = detector.transformingView(frame, BIRDEYE_VIEW);
         Mat sobel = detector.sobelColorThresholding(trans);
+        
+        rectangle(sobel, Point(300,350), Point(600,540), Scalar(0),-1);
+        rectangle(originalImg, Point(300,350), Point(600,540), Scalar(0),-1);
+        
         Mat curve = detector.windowSearch(sobel);
         Mat temp = detector.transformingView(curve, NORMAL_VIEW);
         Mat output = detector.drawPolyArea(frame);
+        detected = detect(output, textGraph, modelWeights);
         
-        imshow("video", output);
+//        imshow("detected", detected);
+//        imshow("trans", trans);
+//        imshow("curve", curve);
+//        imshow("frame", frame);
+//        imshow("temp", temp);
+//        imshow("sobel", sobel);
+        
+//        detected_vid.write(detected);
+//        trans_vid.write(trans);
+//        curve_vid.write(curve);
+//        frame_vid.write(frame);
+//        temp_vid.write(temp);
+        sobel_vid.write(sobel);
+        
+        
+        
     }
+    
+    
+    
     
     
     

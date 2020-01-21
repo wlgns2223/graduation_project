@@ -45,57 +45,9 @@ Mat region_of_interest(Mat img, const Point* pt, int nPoints, const Scalar& colo
     return output;
 }
 
-//vector< vector<Vec4i> > lineSeperator(vector<Vec4i> lines, Mat img_edges )
-//{
-//    vector< vector<Vec4i >> output(2);
-//    size_t j = 0;
-//    Point start;
-//    Point dest;
-//    double slope_thresh  = 0.3;
-//    vector<double> slopes;
-//    vector<Vec4i> selected_lines;
-//    vector<Vec4i> left_lines, right_lines;
-//
-//    for(auto pt : lines) {
-//
-//        start = Point(pt[0], pt[1]);
-//        dest = Point(pt[2], pt[3] );
-//
-//        double slope = (static_cast<double>(dest.y) - static_cast<double>(start.y)) /
-//                        (static_cast<double>(dest.x) - static_cast<double>(start.x) + 0.00001);
-//
-//        if(abs(slope) > slope_thresh ) {
-//            slopes.push_back(slope);
-//            selected_lines.push_back(pt);
-//        }
-//    }
-//
-//    double img_center = static_cast<double>(img_edges.cols / 2);
-//    while( j < selected_lines.size()) {
-//
-//        start  = Point(selected_lines[j][0], selected_lines[j][1]);
-//        start = Point(selected_lines[j][2], selected_lines[j][3]);
-//
-//        if(slopes[j] > 0 && dest.x > img_center && start.x > img_center) {
-//            right_lines.push_back(selected_lines[j]);
-//            right_flag = true;
-//
-//        } else {
-//            left_lines.push_back(selected_lines[j]);
-//            left_flag = true;
-//        }
-//        ++j;
-//    }
-//
-//
-//
-//    output[0] = right_lines;
-//    output[1] = left_lines;
-//
-//    return output;
-//}
 
-    vector<std::vector<cv::Vec4i> > lineSeperator(std::vector<cv::Vec4i> lines, cv::Mat img_edges) {
+vector<std::vector<cv::Vec4i> > lineSeperator(std::vector<cv::Vec4i> lines, cv::Mat img_edges)
+{
     vector<std::vector<cv::Vec4i> > output(2);
     size_t j = 0;
     Point ini;
