@@ -18,20 +18,7 @@ class AdvnacedLaneDetection {
 private:
     Mat img;
     
-//    Original Points
-//    //Trapezoid_vertices coordinates
-//    const vector<Point2f> srcPts = {
-//        Point2f(130,340), Point2f(290,230) ,
-//        Point2f(355, 230), Point2f(530,340)
-//
-//    };
-//
-//    //Points For Warping
-//    const vector<Point2f> destPts = {
-//        Point2f(115, 340), Point2f(115,0),
-//        Point2f(545, 0), Point2f(545, 340)
-//    };
-    
+    // Refactoring -- Data
     const vector<Point2f> srcPts = {
         Point2f(110,540), Point2f(430,330),
         Point2f(530,330), Point2f(890,540)
@@ -50,18 +37,10 @@ private:
     //Original Sample Size Size(640, 360)
     const Size size = Size(960,540);
     
-    
     Scalar GREEN  = Scalar(0,255,0);
     Scalar BLUE   = Scalar(255,0,0);
     Scalar RED    = Scalar(0,0,255);
     Scalar YELLOW = Scalar(0,255,255);
-
-    // Original Threshold ( Yellow + White)
-//    const int sobelMinThreshold = 35;
-//    const int sobelMaxThreshold = 220;
-//
-//    const int colorMinThreshold = 100;
-//    const int colorMaxThreshold = 255;
     
     const int sobelMinThreshold = 30;
     const int sobelMaxThreshold = 255;
@@ -73,13 +52,16 @@ private:
     const int nwindows = 9;
     const int margin = 50;
     
-    Mat loadImgAndResize(String path, int flag = IMREAD_COLOR);
-    Mat sobelThresholding(Mat input, string dir = "x");
-    Mat colorThresholding(Mat input);
     
+    // Refactoring -- Editing
+    Mat loadImgAndResize(String path, int flag = IMREAD_COLOR);
     void changeSize(Mat input);
     void drawCurveline(Mat input, vector<Point> leftPt, vector<Point> rightPt);
     void drawWindowLine(Mat input);
+    
+    
+    Mat sobelThresholding(Mat input, string dir = "x");
+    Mat colorThresholding(Mat input);
     void clearFitPtVec();
 
 public:
@@ -92,11 +74,13 @@ public:
     Mat transformingView(Mat input, const int flag);
     
     //apply sobel edge and thresholding
+    //Refactoring -- will split function into two
     Mat sobelColorThresholding(Mat input);
     
     //find out pixels(Point) in windows and draw left and right curve fitting to lanes
     Mat windowSearch(Mat input);
     
+    // Refactoring -- Editing
     Mat drawPolyArea(Mat input);
     
     Mat detectionPipeline(Mat input, Mat img);
