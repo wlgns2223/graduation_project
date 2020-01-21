@@ -2,6 +2,6 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "self:&#x1109;&#x1169;&#x110b;&#x1170;.xcodeproj">
+      location = "self:opencv.xcodeproj">
    </FileRef>
 </Workspace>

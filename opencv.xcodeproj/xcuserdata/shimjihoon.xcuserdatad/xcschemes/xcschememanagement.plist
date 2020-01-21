@@ -4,7 +4,7 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>소웨.xcscheme</key>
+		<key>opencv.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>0</integer>
@@ -12,7 +12,7 @@
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
-		<key>4A1BAD7D1CB086BD0067BDD9</key>
+		<key>4AA5DA672250D9A9004212CB</key>
 		<dict>
 			<key>primary</key>
 			<true/>
